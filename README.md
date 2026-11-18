@@ -1,12 +1,12 @@
 # MyPortfolio Mobile
 
-Aplikasi portofolio pribadi berbasis Flutter untuk Tugas 7 Pemrograman Berbasis Platform. Proyek ini melanjutkan kode Tutorial 08.
+Aplikasi portofolio pribadi berbasis Flutter untuk Pemrograman Berbasis Platform. Proyek ini melanjutkan Tutorial 08 dan Tugas 7 dengan navigasi serta formulir pada Tutorial 09.
 
 - Nama: Keisha Janice Maulina Napitupulu
 - NPM: 2506551232
 - Kelas: PBP A
 
-Aplikasi menampilkan kartu identitas dan tiga tombol: Lihat Proyek, Tambah Proyek, dan Logout. Setiap tombol memiliki warna berbeda dan menampilkan SnackBar ketika ditekan. Pada tahap ini, tombol belum melakukan navigasi atau autentikasi.
+Aplikasi menampilkan kartu identitas dan tiga tombol: Lihat Proyek, Tambah Proyek, dan Logout. Setiap tombol memiliki warna berbeda dan menampilkan SnackBar ketika ditekan. Tombol Tambah Proyek membuka formulir proyek. Drawer menyediakan navigasi Home dan Add Project. Lihat Proyek dan Logout masih menampilkan SnackBar; autentikasi dan penyimpanan ke database belum diimplementasikan pada tutorial ini.
 
 ## Cara Menjalankan
 
@@ -103,3 +103,46 @@ Saya menggunakan ChatGPT untuk membantu membaca ketentuan tugas, memberikan pand
 Perubahan kode saya terapkan secara manual melalui VS Code, termasuk penggantian identitas, penambahan warna tombol, dan pengaturan tinggi kartu.
 
 Hasil bantuan AI tetap perlu diperiksa. Sebagai contoh, meskipun `flutter analyze` sudah bersih, tampilan aplikasi masih mengalami overflow. Setelah diperiksa melalui Chrome, tinggi kartu diatur menggunakan `mainAxisExtent: 150` dan tampilannya diperiksa kembali.
+
+## Tutorial 09: Navigation, Layouts, Forms, and Input Elements
+
+### Struktur kode
+
+```text
+lib/
+  main.dart
+  screens/
+    menu.dart
+    project_form.dart
+  widgets/
+    left_drawer.dart
+    project_card.dart
+```
+
+- `LeftDrawer` menampilkan header My Portfolio serta menu Home dan Add Project pada kedua halaman. Navigasi drawer menutup drawer lalu menggunakan `Navigator.pushReplacement()` untuk mengganti halaman aktif.
+- Tombol Tambah Proyek menggunakan `Navigator.push()` sehingga tombol Back sistem dapat kembali ke halaman utama.
+- `ProjectFormPage` menggunakan `StatefulWidget`, `Form`, dan `GlobalKey<FormState>`. Nama dan deskripsi proyek wajib diisi; input kosong atau hanya spasi ditolak.
+- Dropdown menyediakan Web Development, Mobile Development, Machine Learning, Data Science, dan Other. Nilai awalnya Web Development, memakai properti `initialValue`.
+- Teknologi dan tautan proyek dapat dikosongkan sesuai contoh tutorial.
+- Save memvalidasi formulir dan menampilkan kelima isian pada `AlertDialog`. Tombol OK menutup dialog, mengosongkan semua field dan data input, serta mengembalikan kategori ke Web Development. Data belum dikirim ke backend atau disimpan ke database.
+- Halaman utama, formulir, dan isi dialog dapat digulir ketika ruang layar terbatas.
+
+### Flutter 3.47 dan 3.50
+
+Lingkungan pengerjaan memakai Flutter 3.47.9 dan Dart 3.13.7. Sesuai catatan PDF, dependensi `material_ui` ditambahkan melalui `flutter pub add material_ui`. Semua impor Material dalam kode aplikasi dan tes menggunakan `package:material_ui/material_ui.dart`, agar sesuai dengan pemisahan pustaka Material pada Flutter 3.50 tanpa harus memperbarui SDK lokal. Versi dependensi terkunci dalam `pubspec.lock`.
+
+Referensi: [panduan migrasi resmi Flutter](https://docs.flutter.dev/release/breaking-changes/material-ui-and-cupertino-ui).
+
+### Pemeriksaan
+
+```bash
+flutter analyze
+flutter test
+flutter run -d chrome
+```
+
+Tes widget mencakup tampilan identitas pada layar mobile, navigasi kartu dan Back sistem, navigasi drawer dengan penggantian route, validasi input kosong/spasi, seluruh isi dialog, reset kategori dan isian, pengiriman kedua tanpa data lama, perilaku SnackBar, serta formulir/dialog panjang pada layar kecil.
+
+### Penggunaan AI pada Tutorial 09
+
+Saya menggunakan Codex untuk membantu  merapikan kode navigasi/formulir, memperbarui impor Material dan menjalankan pemeriksaan.

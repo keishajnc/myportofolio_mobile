@@ -1,12 +1,12 @@
 # MyPortfolio Mobile
 
-Aplikasi portofolio pribadi berbasis Flutter untuk Pemrograman Berbasis Platform. Proyek ini melanjutkan Tutorial 08 dan Tugas 7 dengan navigasi serta formulir pada Tutorial 09.
+Aplikasi portofolio pribadi berbasis Flutter untuk Pemrograman Berbasis Platform. Proyek ini melanjutkan Tutorial 08 dan 09 dengan integrasi Django REST Framework, autentikasi token, dan CI/CD pada Tutorial 10.
 
 - Nama: Keisha Janice Maulina Napitupulu
 - NPM: 2506551232
 - Kelas: PBP A
 
-Aplikasi menampilkan kartu identitas dan tiga tombol: Lihat Proyek, Tambah Proyek, dan Logout. Setiap tombol memiliki warna berbeda dan menampilkan SnackBar ketika ditekan. Tombol Tambah Proyek membuka formulir proyek. Drawer menyediakan navigasi Home dan Add Project. Lihat Proyek dan Logout masih menampilkan SnackBar; autentikasi dan penyimpanan ke database belum diimplementasikan pada tutorial ini.
+Aplikasi menampilkan kartu identitas serta aksi Lihat Proyek, Tambah Proyek, dan Login/Logout sesuai sesi. Daftar dan detail proyek dapat dibuka tanpa login. Menambah proyek membutuhkan login akun superuser Django dan menyimpan data melalui API. Drawer menyediakan navigasi Home, Lihat Proyek, Add Project, dan Login/Logout.
 
 ## Cara Menjalankan
 
@@ -14,13 +14,15 @@ Pastikan Flutter SDK dan Chrome sudah terpasang. Setelah mengunduh atau melakuka
 
 ```bash
 flutter pub get
-flutter run -d chrome
+dart run build_runner build --delete-conflicting-outputs
+flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8000
 ```
 
 Untuk memeriksa kode:
 
 ```bash
 flutter analyze
+flutter test
 ```
 
 ### Tugas 7
@@ -104,7 +106,7 @@ Perubahan kode saya terapkan secara manual melalui VS Code, termasuk penggantian
 
 Hasil bantuan AI tetap perlu diperiksa. Sebagai contoh, meskipun `flutter analyze` sudah bersih, tampilan aplikasi masih mengalami overflow. Setelah diperiksa melalui Chrome, tinggi kartu diatur menggunakan `mainAxisExtent: 150` dan tampilannya diperiksa kembali.
 
-## Tutorial 09: Navigation, Layouts, Forms, and Input Elements
+## Tutorial 09: Navigation, Layouts, Forms, and Input Elements (sebelum integrasi API)
 
 ### Struktur kode
 
@@ -145,4 +147,99 @@ Tes widget mencakup tampilan identitas pada layar mobile, navigasi kartu dan Bac
 
 ### Penggunaan AI pada Tutorial 09
 
-Saya menggunakan Codex untuk membantu  merapikan kode navigasi/formulir, memperbarui impor Material dan menjalankan pemeriksaan.
+Saya menggunakan Codex untuk membantu merapikan kode navigasi/formulir, memperbarui impor Material dan menjalankan pemeriksaan.
+
+## Tutorial 10: Backend Integration, Authentication, and CI/CD
+
+### Backend pendamping
+
+Backend berada di `../myportofolio`. Karena backend sebelumnya berisi Experience dan Skill, model Project beserta serializer, migrasi, dan endpoint ditambahkan sebagai resource tersendiri. API Experience/Skill tetap tersedia dan sekarang menerima autentikasi token maupun session. Hak akses pemilik/editor yang sudah ada tetap berlaku.
+
+Jalankan dari direktori backend:
+
+```powershell
+.\env\Scripts\python.exe -m pip install -r requirements.txt
+.\env\Scripts\python.exe manage.py migrate
+.\env\Scripts\python.exe manage.py runserver
+```
+
+Gunakan akun superuser Django yang sudah ada untuk menambah proyek. Jika belum memiliki akun, buat sendiri melalui `python manage.py createsuperuser` dalam virtual environment backend.
+
+| Metode | Endpoint | Akses |
+| --- | --- | --- |
+| GET | `/api/v1/projects/` | Publik; array JSON |
+| GET | `/api/v1/projects/<uuid>/` | Publik; detail proyek |
+| POST | `/api/v1/projects/` | Superuser; `Authorization: Token <key>` |
+| POST | `/api/v1/auth/token/` | Username/password; mengembalikan token |
+| POST | `/api/v1/auth/logout/` | Mencabut token aktif; 204 tanpa body |
+
+`TokenAuthentication` ditempatkan sebelum `SessionAuthentication`: permintaan tanpa token mendapat 401, pengguna biasa yang mencoba menambah proyek mendapat 403, dan penggunaan session di web tetap memerlukan CSRF. `django-cors-headers` mengizinkan origin lokal ketika `PRODUCTION=False`; produksi memakai daftar `CORS_ALLOWED_ORIGINS` dari environment.
+
+### Struktur integrasi Flutter
+
+```text
+lib/
+  config.dart
+  main.dart
+  models/project.dart
+  screens/login_screen.dart
+  screens/menu.dart
+  screens/project_form.dart
+  screens/project_list_screen.dart
+  screens/project_detail_screen.dart
+  services/api_client.dart
+  services/auth_state.dart
+  widgets/auth_guard.dart
+  widgets/left_drawer.dart
+  widgets/project_card.dart
+```
+
+- `Project` memakai `@JsonSerializable(fieldRename: FieldRename.snake)`. Field `id` hanya dibaca dari server; `project_image_url` yang hilang/null menjadi string kosong. Berkas `project.g.dart` dihasilkan oleh build_runner dan diabaikan Git/linter.
+- `ApiClient` mengirim JSON melalui `http`, menangani respons non-2xx dengan `ApiException`, dan membatasi waktu tunggu 20 detik. UI menampilkan pesan kegagalan tanpa menampilkan HTML/debug server.
+- `ProjectListScreen` menyimpan Future di `initState()`, menampilkan loading/error/kosong/data, mendukung retry serta pull-to-refresh termasuk saat kosong. Ketukan proyek membuka detail dan gambar opsional dengan penanganan gambar gagal.
+- `AuthState` menyimpan token hanya di memori melalui `ChangeNotifier` dan `provider`. Restart aplikasi mengharuskan login ulang. Logout selalu menghapus sesi lokal, termasuk ketika server gagal dihubungi.
+- `ensureLoggedIn()` melindungi navigasi kartu/drawer dan pengiriman form. Setelah login sukses, pengguna melanjutkan ke form; membatalkan login tidak membuka form.
+- Form mengikuti skema API: Title, Description, Tech Stack, Project URL, dan Project Image URL (Optional). URL harus HTTP/HTTPS. Save menonaktifkan pengiriman ganda dan baru mengonfirmasi sesudah server menyimpan proyek. Respons 401 menghapus sesi dan meminta login lagi sambil mempertahankan isian; sesudah login tekan Save lagi. Respons 403 tidak menampilkan konfirmasi sukses.
+
+### Target perangkat
+
+`lib/config.dart` memakai `http://10.0.2.2:8000` sebagai default untuk emulator Android. Android memiliki izin INTERNET; HTTP lokal hanya diaktifkan pada manifest debug. APK release menggunakan HTTPS.
+
+```bash
+# Chrome + Django lokal
+flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8000
+
+# Emulator Android + Django lokal
+flutter run
+
+# Android fisik via USB
+adb reverse tcp:8000 tcp:8000
+flutter run --dart-define=API_BASE_URL=http://localhost:8000
+
+# Backend yang telah di-deploy
+flutter run --dart-define=API_BASE_URL=https://keisha-janice-myportofolio.pws.cs.ui.ac.id
+```
+
+Konfigurasi Chrome dan emulator tersedia di `.vscode/launch.json`. URL deployment baru dapat dipakai setelah perubahan backend beserta migrasinya diterapkan ke server.
+
+### CI/CD
+
+`.github/workflows/main.yaml` berjalan pada push ke `main` dan pull request. Job `build` memakai `very_good_workflows@v2` untuk generator, format, analisis, serta pengujian. Flutter dipatok ke versi lokal 3.47.9. Job `build_apk` menunggu CI berhasil, membangun APK release, lalu mengunggah artefak `app-release-apk`.
+
+Variabel GitHub Actions `API_BASE_URL` dapat diisi URL backend HTTPS. Jika tidak diisi, workflow memakai domain PWS proyek ini sebagai fallback. Jangan simpan password atau token dalam variabel tersebut. Pipeline akan berjalan setelah perubahan di-push; pembuatan file workflow lokal belum menjalankan GitHub Actions.
+
+### Pemeriksaan Tutorial 10
+
+```bash
+dart run build_runner build --delete-conflicting-outputs
+dart format lib test
+flutter analyze
+flutter test
+flutter build web --dart-define=API_BASE_URL=http://localhost:8000
+```
+
+Pengujian mencakup kontrak JSON/HTTP, autentikasi dan pencabutan token, pembersihan sesi saat koneksi gagal, route guard, navigasi drawer, validasi form, respons 401/403, penyimpanan ke API, loading/error/retry, daftar kosong yang dapat di-refresh, dan detail proyek.
+
+### Penggunaan AI pada Tutorial 10
+
+Codex membantu menerapkan integrasi sesuai tutorial, menambahkan prasyarat API Project pada backend, menyusun pengujian, dan menjalankan pemeriksaan lokal.

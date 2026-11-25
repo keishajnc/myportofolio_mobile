@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter Web + Django lokal",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "chrome",
+      "toolArgs": ["--dart-define=API_BASE_URL=http://localhost:8000"]
+    },
+    {
+      "name": "Flutter Android emulator + Django lokal",
+      "request": "launch",
+      "type": "dart"
+    }
+  ]
+}

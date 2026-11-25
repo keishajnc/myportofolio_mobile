@@ -242,4 +242,4 @@ Pengujian mencakup kontrak JSON/HTTP, autentikasi dan pencabutan token, pembersi
 
 ### Penggunaan AI pada Tutorial 10
 
-Codex membantu menerapkan integrasi sesuai tutorial, menambahkan prasyarat API Project pada backend, menyusun pengujian, dan menjalankan pemeriksaan lokal.
+Saya menggunakan Codex untuk membantu implementasi integrasi Flutter–Django dan pengujian. Hasilnya saya tinjau dan uji kembali melalui aplikasi.
